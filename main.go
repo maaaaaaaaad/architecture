@@ -1,44 +1,35 @@
 package main
 
-import (
-	"fmt"
-	"sync"
-	"time"
-)
+import "fmt"
 
-var (
-	counter int
-	mutex   sync.Mutex
-)
+func binarySearch(arr []int, target int) int {
+	low := 0
+	high := len(arr) - 1
+
+	for low <= high {
+		mid := (low + high) / 2
+
+		if arr[mid] == target {
+			return mid
+		} else if arr[mid] < target {
+			low = mid + 1
+		} else {
+			high = mid - 1
+		}
+	}
+
+	return -1
+}
 
 func main() {
-	start := time.Now()
+	arr := []int{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	target := 6
 
-	var wg sync.WaitGroup
-	wg.Add(2)
+	index := binarySearch(arr, target)
 
-	go func() {
-		defer wg.Done()
-
-		for i := 0; i < 1000000; i++ {
-			mutex.Lock()
-			counter++
-			mutex.Unlock()
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-
-		for i := 0; i < 1000000; i++ {
-			mutex.Lock()
-			counter++
-			mutex.Unlock()
-		}
-	}()
-
-	wg.Wait()
-
-	fmt.Println("Counter:", counter)
-	fmt.Println("Elapsed time:", time.Since(start))
+	if index != -1 {
+		fmt.Printf("Target %d found at index %d\n", target, index)
+	} else {
+		fmt.Printf("Target %d not found in the array\n", target)
+	}
 }
