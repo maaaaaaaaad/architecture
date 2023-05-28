@@ -1,63 +1,95 @@
 package main
 
 import (
+	"container/heap"
 	"fmt"
+	"math"
 )
 
-type Graph struct {
-	vertices []*Vertex
+type City struct {
+	totalTime, maxWeight, leftGold, leftSilver, idx int
 }
 
-type Vertex struct {
-	key      int
-	adjacent []*Vertex
-	visited  bool
+type MinHeap []*City
+
+func (h MinHeap) Len() int {
+	return len(h)
+}
+func (h MinHeap) Less(i, j int) bool {
+	return h[i].totalTime < h[j].totalTime
+}
+func (h MinHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+	h[i].idx, h[j].idx = i, j
 }
 
-func NewVertex(key int) *Vertex {
-	return &Vertex{
-		key:      key,
-		adjacent: []*Vertex{},
-	}
+func (h *MinHeap) Push(x interface{}) {
+	n := len(*h)
+	city := x.(*City)
+	city.idx = n
+	*h = append(*h, city)
 }
 
-func (g *Graph) AddVertex(v *Vertex) {
-	g.vertices = append(g.vertices, v)
+func (h *MinHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	city := old[n-1]
+	old[n-1] = nil
+	city.idx = -1
+	*h = old[0 : n-1]
+	return city
 }
 
-func (g *Graph) AddEdge(v1, v2 *Vertex) {
-	v1.adjacent = append(v1.adjacent, v2)
-	v2.adjacent = append(v2.adjacent, v1)
-}
-
-func (g *Graph) DFS(v *Vertex) {
-	v.visited = true
-	fmt.Printf("Visited vertex: %d\n", v.key)
-
-	for _, adjacent := range v.adjacent {
-		if !adjacent.visited {
-			g.DFS(adjacent)
+func solution(a int, b int, g []int, s []int, w []int, t []int) int {
+	h := &MinHeap{}
+	heap.Init(h)
+	totalGold, totalSilver := 0, 0
+	minTime := 0
+	for i := 0; i < len(g); i++ {
+		totalGold += g[i]
+		totalSilver += s[i]
+		city := &City{
+			totalTime: 2 * t[i],
+			maxWeight: w[i],
+			leftGold:  g[i],
+			leftSilver: s[i],
+			idx:       i,
 		}
+		if city.totalTime < 0 {
+			minTime = city.totalTime
+		}
+		heap.Push(h, city)
 	}
+	needGold, needSilver := a, b
+	for needGold > 0 || needSilver > 0 {
+		city := heap.Pop(h).(*City)
+		if city.totalTime < minTime {
+			minTime = city.totalTime
+		}
+		amount := min(min(city.leftGold+city.leftSilver, city.maxWeight), needGold+needSilver)
+		if amount > city.leftGold {
+			city.leftSilver -= amount - city.leftGold
+			needSilver -= amount - city.leftGold
+			needGold -= city.leftGold
+			city.leftGold = 0
+		} else {
+			city.leftGold -= amount
+			needGold -= amount
+		}
+		city.totalTime += 2 * city.totalTime
+		heap.Push(h, city)
+	}
+	return -minTime
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func main() {
-	g := &Graph{}
-
-	vertices := []*Vertex{}
-	for i := 0; i < 8; i++ {
-		vertex := NewVertex(i)
-		vertices = append(vertices, vertex)
-		g.AddVertex(vertex)
-	}
-
-	g.AddEdge(vertices[0], vertices[1])
-	g.AddEdge(vertices[0], vertices[2])
-	g.AddEdge(vertices[1], vertices[3])
-	g.AddEdge(vertices[1], vertices[4])
-	g.AddEdge(vertices[2], vertices[5])
-	g.AddEdge(vertices[2], vertices[6])
-	g.AddEdge(vertices[3], vertices[7])
-
-	g.DFS(vertices[0])
+	fmt.Println(solution(10, 10, []int{100}, []int{100}, []int{7}, []int{10}))
+	fmt.Println(solution(90, 500, []int{70, 70, 0}, []int{0, 0, 500}, []int{100, 100, 2}, []int{4, 8, 1}))
 }
